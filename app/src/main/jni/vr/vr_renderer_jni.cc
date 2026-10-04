@@ -4,8 +4,8 @@
 
 static JavaVM* g_java_vm = nullptr;
 
-static moonlight_vr::VrMoonlightApp* FromHandle(jlong handle) {
-  return reinterpret_cast<moonlight_vr::VrMoonlightApp*>(handle);
+static moonboard_vr::VrMoonBoardApp* FromHandle(jlong handle) {
+  return reinterpret_cast<moonboard_vr::VrMoonBoardApp*>(handle);
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
@@ -17,7 +17,7 @@ extern "C" JNIEXPORT jlong JNICALL
 Java_com_limelight_vr_VrRenderer_nativeCreate(JNIEnv* env, jobject obj,
                                               jobject context,
                                               jobject asset_manager) {
-  return reinterpret_cast<jlong>(new moonlight_vr::VrMoonlightApp(
+  return reinterpret_cast<jlong>(new moonboard_vr::VrMoonBoardApp(
       g_java_vm, context, asset_manager));
 }
 

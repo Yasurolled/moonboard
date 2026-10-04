@@ -75,13 +75,13 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
-            resValue "string", "app_label", "MoonlightVR (Debug)"
+            resValue "string", "app_label", "MoonBoard (Debug)"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         release {
-            resValue "string", "app_label", "MoonlightVR"
+            resValue "string", "app_label", "MoonBoard"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -90,10 +90,15 @@ android {
 
     signingConfigs {
         ciSigning {
-            def ciStoreFilePath = project.findProperty('MOONLIGHTVR_STORE_FILE')?.toString()?.trim()
-            def ciStorePassword = project.findProperty('MOONLIGHTVR_STORE_PASSWORD')?.toString()?.trim()
-            def ciKeyAlias = project.findProperty('MOONLIGHTVR_KEY_ALIAS')?.toString()?.trim()
-            def ciKeyPassword = project.findProperty('MOONLIGHTVR_KEY_PASSWORD')?.toString()?.trim()
+            // Preserve legacy property names for existing CI and local signing setups.
+            def ciStoreFilePath = (project.findProperty('MOONBOARD_STORE_FILE') ?:
+                    project.findProperty('MOONLIGHTVR_STORE_FILE'))?.toString()?.trim()
+            def ciStorePassword = (project.findProperty('MOONBOARD_STORE_PASSWORD') ?:
+                    project.findProperty('MOONLIGHTVR_STORE_PASSWORD'))?.toString()?.trim()
+            def ciKeyAlias = (project.findProperty('MOONBOARD_KEY_ALIAS') ?:
+                    project.findProperty('MOONLIGHTVR_KEY_ALIAS'))?.toString()?.trim()
+            def ciKeyPassword = (project.findProperty('MOONBOARD_KEY_PASSWORD') ?:
+                    project.findProperty('MOONLIGHTVR_KEY_PASSWORD'))?.toString()?.trim()
             def ciStoreFileObject = ciStoreFilePath ? file(ciStoreFilePath) : null
 
             def hasAllSigningProps = ciStoreFileObject?.exists() &&

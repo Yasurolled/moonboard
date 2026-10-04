@@ -24,7 +24,7 @@ Die Streamingqualität kann aufgrund des verwendeten Android Geräts und der Net
 
 '''Anleitung zur Schnellkonfiguration'''
 # Stellen sie sicher dass GeForce Experience auf ihrem PC installiert ist. Aktivieren sie GameStream in den SHIELD Einstellungen.
-# Wählen Sie den PC in Moonlight aus und tippen sie den PIN auf ihrem PC ein.
+# Wählen Sie den PC in MoonBoard aus und tippen sie den PIN auf ihrem PC ein.
 # Streamen sie los!
 
 Für eine gutes Benutzungserlebnis benötigen sie einen mid- bist high-end WLAN-Router mit einer ungestörten Verbindung zu ihrem Android Gerät (5 GHz wird empfohlen) sowie eine gute Verbindung von ihrem PC zum Router (Ethernet empfohlen).

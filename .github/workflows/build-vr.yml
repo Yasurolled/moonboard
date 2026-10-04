@@ -1,4 +1,4 @@
-name: Build MoonlightVR
+name: Build MoonBoard
 
 on:
   workflow_dispatch:
@@ -47,7 +47,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/moonlightvr-ci.keystore"
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/moonboard-ci.keystore"
           fi
 
       - name: Build debug APK
@@ -64,10 +64,10 @@ jobs:
           fi
 
           if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
-            GRADLE_OPTS="$GRADLE_OPTS -PMOONLIGHTVR_STORE_FILE=$RUNNER_TEMP/moonlightvr-ci.keystore"
-            GRADLE_OPTS="$GRADLE_OPTS -PMOONLIGHTVR_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
-            GRADLE_OPTS="$GRADLE_OPTS -PMOONLIGHTVR_KEY_ALIAS=$ANDROID_KEY_ALIAS"
-            GRADLE_OPTS="$GRADLE_OPTS -PMOONLIGHTVR_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            GRADLE_OPTS="$GRADLE_OPTS -PMOONBOARD_STORE_FILE=$RUNNER_TEMP/moonboard-ci.keystore"
+            GRADLE_OPTS="$GRADLE_OPTS -PMOONBOARD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            GRADLE_OPTS="$GRADLE_OPTS -PMOONBOARD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            GRADLE_OPTS="$GRADLE_OPTS -PMOONBOARD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
           fi
 
           ./gradlew :app:assembleVrModeDebug $GRADLE_OPTS --no-daemon
@@ -80,7 +80,7 @@ jobs:
           APK_PATH="app/build/outputs/apk/vrMode/${BUILD_TYPE,,}/app-vrMode-${BUILD_TYPE,,}.apk"
           
           if [ -f "$APK_PATH" ]; then
-            NEW_NAME="MoonlightVR-VrMode-${WORKFLOW_VERSION}.apk"
+            NEW_NAME="MoonBoard-VrMode-${WORKFLOW_VERSION}.apk"
             cp "$APK_PATH" "$NEW_NAME"
             echo "APK_NAME=$NEW_NAME" >> $GITHUB_ENV
             echo "APK exists at: $APK_PATH"
@@ -93,8 +93,8 @@ jobs:
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MoonlightVR-VrMode-${{ steps.version.outputs.WORKFLOW_VERSION }}
-          path: MoonlightVR-*.apk
+          name: MoonBoard-VrMode-${{ steps.version.outputs.WORKFLOW_VERSION }}
+          path: MoonBoard-*.apk
           retention-days: 30
 
       - name: Upload Build Logs

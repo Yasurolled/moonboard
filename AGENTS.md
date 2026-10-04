@@ -1,7 +1,7 @@
 # AGENTS
 
 ## Repository Goal
-This fork of the Moonlight Android client (**MoonlightVR**) adds native support for Google Cardboard VR rendering so streamed Sunshine/Moonlight gameplay appears on a virtual TV screen. The VR screen is anchored in 3D space with proper head tracking and adjustable distance. The intent is to keep the existing flat-screen pipeline intact while layering in the VR experience.
+This fork of the Moonlight Android client (**MoonBoard**) adds native support for Google Cardboard VR rendering so streamed Sunshine/Moonlight gameplay appears on a virtual TV screen. The VR screen is anchored in 3D space with proper head tracking and adjustable distance. The intent is to keep the existing flat-screen pipeline intact while layering in the VR experience.
 
 ## Key Concepts
 - **Base project:** The original `moonlight-android` client with its multi-activity flow, StreamView/SurfaceHolder rendering, decoder pipeline, and JNI bridge (including `moonlight-core`).
@@ -56,23 +56,23 @@ This fork of the Moonlight Android client (**MoonlightVR**) adds native support 
 
 ## VR Render Pipeline (Execution Order)
 1. `Game.onCreate()` reads `PreferenceConfiguration`, toggles `vrMode`, and instantiates `VrRenderer` when VR is enabled.
-2. `VrRenderer` calls `nativeCreate()`/`nativeOnSurfaceCreated()` to allocate `VrMoonlightApp`, create an external OES texture, and feed a `SurfaceTexture`/`Surface` back through `VrRenderer.SurfaceListener`.
+2. `VrRenderer` calls `nativeCreate()`/`nativeOnSurfaceCreated()` to allocate `VrMoonBoardApp`, create an external OES texture, and feed a `SurfaceTexture`/`Surface` back through `VrRenderer.SurfaceListener`.
 3. `Game.handleVrSurfaceReady()` binds that `Surface` to `MediaCodecDecoderRenderer`, so the decoder writes directly into the OES texture managed by VR.
 4. Each decoder frame triggers `VrRenderer.onFrameAvailable()`, which requests render, then `onDrawFrame()` updates the `SurfaceTexture`, sends the texture transform via `nativeSetTextureTransform()`, and calls `nativeOnDrawFrame()`.
-5. `VrMoonlightApp::OnDrawFrame()` updates Cardboard device params/head pose, renders the video into an offscreen FBO per eye, optionally draws the skybox cubemap, and then hands the FBO texture to `CardboardDistortionRenderer_renderEyeToDisplay()`.
+5. `VrMoonBoardApp::OnDrawFrame()` updates Cardboard device params/head pose, renders the video into an offscreen FBO per eye, optionally draws the skybox cubemap, and then hands the FBO texture to `CardboardDistortionRenderer_renderEyeToDisplay()`.
 6. `CardboardDistortionRenderer` composites the per-eye viewports, applies lens distortion, writes to the screen, and finally `glDisable(GL_DEPTH_TEST)` plus any debug overlays exit (`kLineVertices`).
 
 ## Call Graph: Java -> JNI -> Native -> Cardboard
 - `Game` (`app/src/main/java/com/limelight/Game.java`) configures VR settings and starts `VrRenderer` + `UiService`.
 - `VrCameraManager` (`app/src/main/java/com/limelight/vr/VrCameraManager.java`) manages Camera2 capture lifecycle, opens rear camera, and streams frames to the GL Surface provided by `VrRenderer`.
 - `VrRenderer` (`app/src/main/java/com/limelight/vr/VrRenderer.java`) implements `GLSurfaceView.Renderer`, handles lifecycle, exposes `setScreenDistance`, `setCurvature*`, `setSkyboxEnabled`, camera PiP methods (`createCameraSurface`, `setCameraEnabled`, `setCameraTextureTransform`), and uploads cubemap textures before calling native methods (`nativeCreate`, `nativeOnDrawFrame`, `nativeSetSkyboxTexture`, etc.).
-- JNI bridge (`app/src/main/jni/vr/vr_renderer_jni.cc`) forwards every GL/VR call to `VrMoonlightApp` (create, destroy, surface events, transforms, preference setters, skybox toggles), and exposes `nativeOnDrawFrame()` for each frame.
+- JNI bridge (`app/src/main/jni/vr/vr_renderer_jni.cc`) forwards every GL/VR call to `VrMoonBoardApp` (create, destroy, surface events, transforms, preference setters, skybox toggles), and exposes `nativeOnDrawFrame()` for each frame.
 - Native renderer (`app/src/main/jni/vr/vr_renderer.cpp/.h`) allocates Cardboard helpers, compiles shaders, builds meshes, updates model matrices, and orchestrates `RenderVideoToTexture()` plus skybox drawing.
 - Cardboard SDK sources under `vendor/cardboard/` supply:
   * `CardboardHeadTracker` (pose prediction),
   * `CardboardLensDistortion` (per-eye projection/eye-from-head matrices),
   * `CardboardDistortionRenderer` (final distortion/compositing),
-  * `rendering/opengl_es2_distortion_renderer.cc` (GL draw helper shared in `VrMoonlightApp`).
+  * `rendering/opengl_es2_distortion_renderer.cc` (GL draw helper shared in `VrMoonBoardApp`).
 
 ## Per-Frame Data Flow
 1. Decoder writes decoded video frames to the `Surface` provided by `VrRenderer`.
@@ -108,7 +108,7 @@ The VR mode includes an optional rear camera picture-in-picture (PiP) view that 
   - Native camera methods in `vr_renderer.cpp` (`SetCameraTexture`, `SetCameraTextureTransform`, `SetCameraEnabled`, `UpdateCameraModelMatrix`).
 
 ## Debug Checklist
-- **GL shader compile/link logs:** `LoadGLShader()` logs shader compile failures; `VrMoonlightApp::OnSurfaceCreated()` now checks program link status and logs info logs.
+- **GL shader compile/link logs:** `LoadGLShader()` logs shader compile failures; `VrMoonBoardApp::OnSurfaceCreated()` now checks program link status and logs info logs.
 - **Texture ID health:** `loadSkyboxCubemap()` verifies `glGenTextures()` returns non-zero before proceeding, deletes textures when uploads fail, and sets `skyboxTextureId` to zero on cleanup.
 - **Surface validity:** `MediaCodecDecoderRenderer.configureAndStartDecoder()` reports severe logs if `Surface` is `null` or `!isValid()`; `Game.handleVrSurfaceReady()` avoids starting a connection until a valid surface arrives.
 - **Context recreation behavior:** `VrRenderer.onSurfaceCreated()` reuploads the saved cubemap (if present) to ensure skybox textures survive context loss; add similar reloads if you later add new GL assets.

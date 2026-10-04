@@ -5,7 +5,7 @@
 #include <ctime>
 #include <cstring>
 
-namespace moonlight_vr {
+namespace moonboard_vr {
 
 namespace {
 
@@ -294,4 +294,4 @@ Quatf SlerpQuaternions(const Quatf& a, const Quatf& b, float t) {
       s0 * a.w + s1 * b_adj.w);
 }
 
-}  // namespace moonlight_vr
+}  // namespace moonboard_vr

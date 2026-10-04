@@ -44,6 +44,7 @@ import javax.net.ssl.SSLContext;
 public class VrControlServer extends NanoHTTPD {
     private static final int DEFAULT_PORT = 8555;
     private static final String VERSION = BuildConfig.VERSION_NAME;
+    // Existing private keystores use this alias.
     private static final String KEY_ALIAS = "MoonlightVrServerKey";
     private static final String PREF_NAME = "VrControlPrefs";
     private static final String PREF_KEY_PASS = "keystore_pass";
@@ -109,7 +110,7 @@ public class VrControlServer extends NanoHTTPD {
             calendar.add(Calendar.YEAR, 5);
             Date endDate = calendar.getTime();
 
-            X500Name subject = new X500Name("CN=MoonlightVR Control, O=Limelight, C=US");
+            X500Name subject = new X500Name("CN=MoonBoard Control, O=Yasurolled, C=US");
             BigInteger serial = BigInteger.valueOf(now);
 
             X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
@@ -324,7 +325,7 @@ public class VrControlServer extends NanoHTTPD {
             "#menu a { color: #aa344a; text-decoration: none; font-size: 14px; }" +
             "#status { position: absolute; bottom: 20px; right: 20px; width: 16px; height: 16px; border-radius: 50%; background: #f44; box-shadow: 0 0 8px #f44; }" +
             "</style></head><body>" +
-            "<div id=\"hud\"><strong>MoonlightVR Gestures</strong><br>" +
+            "<div id=\"hud\"><strong>MoonBoard Gestures</strong><br>" +
             "1 Finger: Brightness (up/down)<br>2 Fingers: Pinch to Zoom<br>2 Fingers: Rotate<br>Double Tap: Recenter</div>" +
             "<div id=\"menu\"><a href=\"/buttons.html\">Buttons</a></div>" +
             "<div id=\"status\"></div>" +
@@ -427,7 +428,7 @@ public class VrControlServer extends NanoHTTPD {
     private Response serveButtonsHtml() {
         String html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
-            "<title>MoonlightVR Control</title>" +
+            "<title>MoonBoard Control</title>" +
             "<style>" +
             "body{font-family:sans-serif;margin:0;padding:20px;background:#222;color:#eee}" +
             "h1{color:#aa344a}.card{background:#333;padding:20px;border-radius:8px;margin:10px 0}" +
@@ -436,7 +437,7 @@ public class VrControlServer extends NanoHTTPD {
             "background:#aa344a;border:none;border-radius:4px;color:#111;font-size:16px;font-weight:bold;cursor:pointer}" +
             ".btn:active{background:#622a35}.row{display:flex;gap:10px}.row .btn{flex:1}" +
             "input[type=range]{width:100%;margin:15px 0}</style></head>" +
-            "<body><h1>MoonlightVR</h1>" +
+            "<body><h1>MoonBoard</h1>" +
             "<div class=\"card intro\">" +
             "<div class=\"card\"><h3>Version: " + VERSION + "</h3>" +
             "<p class=\"status\">HTTPS Server Running on port 8555</p></div>" +

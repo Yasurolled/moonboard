@@ -7,10 +7,10 @@
 #include <GLES2/gl2.h>
 #include <android/log.h>
 
-#define VR_LOG_TAG "VrMoonlightApp"
+#define VR_LOG_TAG "VrMoonBoardApp"
 #define VR_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, VR_LOG_TAG, __VA_ARGS__)
 
-namespace moonlight_vr {
+namespace moonboard_vr {
 
 struct Matrix4x4 {
   float m[4][4];
@@ -41,7 +41,7 @@ int64_t GetBootTimeNano();
 GLuint LoadGLShader(GLenum type, const char* shader_source);
 void CheckGlError(const char* file, int line, const char* label);
 #define CHECK_GL_ERROR(label) \
-  moonlight_vr::CheckGlError(__FILE__, __LINE__, label)
+  moonboard_vr::CheckGlError(__FILE__, __LINE__, label)
 
 void CalculateUvOffset(const std::array<float, 4>& q_render,
                        const std::array<float, 4>& q_latest,
@@ -49,6 +49,6 @@ void CalculateUvOffset(const std::array<float, 4>& q_render,
                        float& out_v_offset);
 Quatf SlerpQuaternions(const Quatf& a, const Quatf& b, float t);
 
-}  // namespace moonlight_vr
+}  // namespace moonboard_vr
 
 #endif  // MOONLIGHT_VR_UTIL_H_

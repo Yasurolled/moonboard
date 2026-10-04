@@ -18,7 +18,7 @@
 #include "cardboard.h"
 #include "qr_code.h"
 
-namespace moonlight_vr {
+namespace moonboard_vr {
 
 namespace {
 
@@ -232,7 +232,7 @@ const GLfloat kSkyboxVertices[] = {
 
 }  // namespace
 
-VrMoonlightApp::VrMoonlightApp(JavaVM* vm, jobject activity, jobject asset_manager)
+VrMoonBoardApp::VrMoonBoardApp(JavaVM* vm, jobject activity, jobject asset_manager)
     : java_vm_(vm),
       activity_(nullptr),
       java_asset_mgr_(nullptr),
@@ -266,7 +266,7 @@ VrMoonlightApp::VrMoonlightApp(JavaVM* vm, jobject activity, jobject asset_manag
        model_matrix_(),
       screen_distance_meters_(kDefaultScreenDistanceMeters),
       screen_size_multiplier_(1.0f),
-      curvature_mode_(VrMoonlightApp::kCurvatureModeFlat),
+      curvature_mode_(VrMoonBoardApp::kCurvatureModeFlat),
       curvature_amount_percent_(50.f),
       horizontal_curvature_percent_(50.f),
       vertical_curvature_percent_(50.f),
@@ -320,7 +320,7 @@ VrMoonlightApp::VrMoonlightApp(JavaVM* vm, jobject activity, jobject asset_manag
       camera_texture_transform_[10] = camera_texture_transform_[15] = 1.f;
 }
 
-VrMoonlightApp::~VrMoonlightApp() {
+VrMoonBoardApp::~VrMoonBoardApp() {
   DestroyCardboardResources();
 
   if (render_texture_) {
@@ -359,7 +359,7 @@ VrMoonlightApp::~VrMoonlightApp() {
   }
 }
 
-jint VrMoonlightApp::OnSurfaceCreated(JNIEnv* env) {
+jint VrMoonBoardApp::OnSurfaceCreated(JNIEnv* env) {
   if (video_program_ == 0) {
     GLuint vertex_shader = LoadGLShader(GL_VERTEX_SHADER, kVideoVertexShader);
     GLuint fragment_shader = LoadGLShader(GL_FRAGMENT_SHADER, kVideoFragmentShader);
@@ -439,20 +439,20 @@ jint VrMoonlightApp::OnSurfaceCreated(JNIEnv* env) {
   return static_cast<jint>(video_texture_);
 }
 
-void VrMoonlightApp::OnSurfaceChanged(int width, int height) {
+void VrMoonBoardApp::OnSurfaceChanged(int width, int height) {
   screen_width_ = width;
   screen_height_ = height;
   screen_params_changed_ = true;
   UpdateRenderTarget();
 }
 
-void VrMoonlightApp::SetTextureTransform(const float* transform) {
+void VrMoonBoardApp::SetTextureTransform(const float* transform) {
   if (transform != nullptr) {
     std::copy(transform, transform + 16, texture_transform_);
   }
 }
 
-void VrMoonlightApp::OnDrawFrame() {
+void VrMoonBoardApp::OnDrawFrame() {
   if (geometry_dirty_) {
     UpdateScreenGeometry();
     geometry_dirty_ = false;
@@ -581,17 +581,17 @@ void VrMoonlightApp::OnDrawFrame() {
   glDisableVertexAttribArray(line_pos_attrib_);
 }
 
-void VrMoonlightApp::OnPause() {
+void VrMoonBoardApp::OnPause() {
   CardboardHeadTracker_pause(head_tracker_);
 }
 
-void VrMoonlightApp::OnResume() {
+void VrMoonBoardApp::OnResume() {
   CardboardHeadTracker_resume(head_tracker_);
   device_params_changed_ = true;
   last_recenter_update_nanos_ = 0;
 }
 
-void VrMoonlightApp::ResetRenderTarget() {
+void VrMoonBoardApp::ResetRenderTarget() {
   if (render_texture_) {
     glDeleteTextures(1, &render_texture_);
     render_texture_ = 0;
@@ -606,7 +606,7 @@ void VrMoonlightApp::ResetRenderTarget() {
   }
 }
 
-void VrMoonlightApp::UpdateRenderTarget() {
+void VrMoonBoardApp::UpdateRenderTarget() {
   ResetRenderTarget();
   if (screen_width_ == 0 || screen_height_ == 0) {
     return;
@@ -645,7 +645,7 @@ void VrMoonlightApp::UpdateRenderTarget() {
   right_eye_texture_description_.right_u = 1.f;
 }
 
-bool VrMoonlightApp::UpdateDeviceParams() {
+bool VrMoonBoardApp::UpdateDeviceParams() {
   bool hardware_recreated = false;
 
   if (screen_params_changed_ || device_params_changed_) {
@@ -724,7 +724,7 @@ bool VrMoonlightApp::UpdateDeviceParams() {
   return true;
 }
 
-void VrMoonlightApp::TransformLensMesh(std::vector<float>& vertices, float scale,
+void VrMoonBoardApp::TransformLensMesh(std::vector<float>& vertices, float scale,
                                        float offset_x, bool is_left_eye) {
   if (vertices.empty()) {
     return;
@@ -763,7 +763,7 @@ void VrMoonlightApp::TransformLensMesh(std::vector<float>& vertices, float scale
   }
 }
 
-void VrMoonlightApp::RenderVideoToTexture(
+void VrMoonBoardApp::RenderVideoToTexture(
     const std::array<float, 3>& head_position,
     const std::array<float, 4>& head_orientation) {
   if (framebuffer_ == 0 || render_texture_ == 0 || lens_distortion_ == nullptr) {
@@ -997,7 +997,7 @@ void VrMoonlightApp::RenderVideoToTexture(
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void VrMoonlightApp::DestroyCardboardResources() {
+void VrMoonBoardApp::DestroyCardboardResources() {
   if (distortion_renderer_ != nullptr) {
     CardboardDistortionRenderer_destroy(distortion_renderer_);
     distortion_renderer_ = nullptr;
@@ -1008,12 +1008,12 @@ void VrMoonlightApp::DestroyCardboardResources() {
   }
 }
 
-void VrMoonlightApp::SetCurrentFramePose(const std::array<float, 4>& orientation) {
+void VrMoonBoardApp::SetCurrentFramePose(const std::array<float, 4>& orientation) {
   last_rendered_orientation_ = orientation;
   has_render_pose_ = true;
 }
 
-void VrMoonlightApp::RecenterView() {
+void VrMoonBoardApp::RecenterView() {
   screen_yaw_radians_ = 0.0f;
   screen_pitch_radians_ = 0.0f;
   screen_rotation_radians_ = 0.0f;
@@ -1037,7 +1037,7 @@ void VrMoonlightApp::RecenterView() {
   last_recenter_update_nanos_ = 0;
 }
 
-void VrMoonlightApp::SetScreenDistance(float meters) {
+void VrMoonBoardApp::SetScreenDistance(float meters) {
   screen_distance_meters_ = meters;
   if (screen_distance_meters_ < kMinScreenDistanceMeters) {
     screen_distance_meters_ = kMinScreenDistanceMeters;
@@ -1047,7 +1047,7 @@ void VrMoonlightApp::SetScreenDistance(float meters) {
   UpdateModelMatrix();
 }
 
-void VrMoonlightApp::SetScreenSize(float sizeMultiplier) {
+void VrMoonBoardApp::SetScreenSize(float sizeMultiplier) {
   screen_size_multiplier_ = sizeMultiplier;
   if (screen_size_multiplier_ < 0.25f) {
     screen_size_multiplier_ = 0.25f;
@@ -1058,7 +1058,7 @@ void VrMoonlightApp::SetScreenSize(float sizeMultiplier) {
   geometry_dirty_ = true;
 }
 
-void VrMoonlightApp::AdjustScreenDistance(float deltaMeters) {
+void VrMoonBoardApp::AdjustScreenDistance(float deltaMeters) {
   screen_distance_meters_ += deltaMeters;
   if (screen_distance_meters_ < kMinScreenDistanceMeters) {
     screen_distance_meters_ = kMinScreenDistanceMeters;
@@ -1068,7 +1068,7 @@ void VrMoonlightApp::AdjustScreenDistance(float deltaMeters) {
   UpdateModelMatrix();
 }
 
-void VrMoonlightApp::AdjustScreenSize(float deltaMultiplier) {
+void VrMoonBoardApp::AdjustScreenSize(float deltaMultiplier) {
   screen_size_multiplier_ += deltaMultiplier;
   if (screen_size_multiplier_ < 0.25f) {
     screen_size_multiplier_ = 0.25f;
@@ -1079,7 +1079,7 @@ void VrMoonlightApp::AdjustScreenSize(float deltaMultiplier) {
   geometry_dirty_ = true;
 }
 
-void VrMoonlightApp::AdjustScreenPosition(float deltaX, float deltaY) {
+void VrMoonBoardApp::AdjustScreenPosition(float deltaX, float deltaY) {
   const float kYawSensitivity = 3.0f;
   const float kPitchSensitivity = 3.0f;
 
@@ -1091,13 +1091,13 @@ void VrMoonlightApp::AdjustScreenPosition(float deltaX, float deltaY) {
   UpdateModelMatrix();
 }
 
-void VrMoonlightApp::AdjustScreenRotation(float deltaRadians) {
+void VrMoonBoardApp::AdjustScreenRotation(float deltaRadians) {
   screen_rotation_radians_ += deltaRadians;
   screen_rotation_radians_ = std::clamp(screen_rotation_radians_, -1.5708f, 1.5708f);
   UpdateModelMatrix();
 }
 
-void VrMoonlightApp::SetCurvatureMode(int mode) {
+void VrMoonBoardApp::SetCurvatureMode(int mode) {
   if (mode < kCurvatureModeFlat || mode > kCurvatureModeGamingScreen) {
     return;
   }
@@ -1105,65 +1105,65 @@ void VrMoonlightApp::SetCurvatureMode(int mode) {
   geometry_dirty_ = true;
 }
 
-void VrMoonlightApp::SetCurvatureAmount(float percent) {
+void VrMoonBoardApp::SetCurvatureAmount(float percent) {
   curvature_amount_percent_ = std::clamp(percent, 0.f, 100.f);
   geometry_dirty_ = true;
 }
 
-void VrMoonlightApp::SetHorizontalCurvature(float percent) {
+void VrMoonBoardApp::SetHorizontalCurvature(float percent) {
   horizontal_curvature_percent_ = std::clamp(percent, 0.f, 100.f);
   geometry_dirty_ = true;
 }
 
-void VrMoonlightApp::SetVerticalCurvature(float percent) {
+void VrMoonBoardApp::SetVerticalCurvature(float percent) {
   vertical_curvature_percent_ = std::clamp(percent, 0.f, 100.f);
   geometry_dirty_ = true;
 }
 
-float VrMoonlightApp::GetCurvatureAmount() const {
+float VrMoonBoardApp::GetCurvatureAmount() const {
   return curvature_amount_percent_;
 }
 
-float VrMoonlightApp::GetHorizontalCurvature() const {
+float VrMoonBoardApp::GetHorizontalCurvature() const {
   return horizontal_curvature_percent_;
 }
 
-float VrMoonlightApp::GetVerticalCurvature() const {
+float VrMoonBoardApp::GetVerticalCurvature() const {
   return vertical_curvature_percent_;
 }
 
-float VrMoonlightApp::GetScreenSize() const {
+float VrMoonBoardApp::GetScreenSize() const {
   return screen_size_multiplier_;
 }
 
-void VrMoonlightApp::SetSkyboxEnabled(bool enabled) {
+void VrMoonBoardApp::SetSkyboxEnabled(bool enabled) {
   skybox_enabled_ = enabled;
 }
 
-void VrMoonlightApp::SetSkyboxTexture(GLuint textureId) {
+void VrMoonBoardApp::SetSkyboxTexture(GLuint textureId) {
   skybox_texture_ = textureId;
 }
 
-void VrMoonlightApp::SetSkyboxBrightness(float brightness) {
+void VrMoonBoardApp::SetSkyboxBrightness(float brightness) {
   skybox_brightness_ = std::max(0.0f, std::min(1.0f, brightness));
 }
 
-void VrMoonlightApp::SetLensScale(float scale) {
+void VrMoonBoardApp::SetLensScale(float scale) {
   lens_scale_ = std::clamp(scale, kMinLensScale, kMaxLensScale);
   lens_mesh_dirty_ = true;
 }
 
-void VrMoonlightApp::AdjustLeftLensOffset(float delta_x) {
+void VrMoonBoardApp::AdjustLeftLensOffset(float delta_x) {
   left_lens_offset_x_ += delta_x;
   lens_mesh_dirty_ = true;
 }
 
-void VrMoonlightApp::AdjustRightLensOffset(float delta_x) {
+void VrMoonBoardApp::AdjustRightLensOffset(float delta_x) {
   right_lens_offset_x_ += delta_x;
   lens_mesh_dirty_ = true;
 }
  
-void VrMoonlightApp::UpdateModelMatrix() {
+void VrMoonBoardApp::UpdateModelMatrix() {
   const float half_width = kScreenWidthMeters * 0.5f * screen_size_multiplier_;
   const float half_height = half_width / kScreenAspectRatio;
   const std::array<float, 3> scale = {half_width, -half_height, 1.0f};
@@ -1196,7 +1196,7 @@ void VrMoonlightApp::UpdateModelMatrix() {
   model_matrix_ = orbit_rot * GetTranslationMatrix(translation) * local_rot * GetScaleMatrix(scale);
 }
 
-void VrMoonlightApp::UpdateScreenGeometry() {
+void VrMoonBoardApp::UpdateScreenGeometry() {
   const float half_width = kScreenWidthMeters * 0.5f * screen_size_multiplier_;
   const float half_height = half_width / kScreenAspectRatio;
 
@@ -1279,7 +1279,7 @@ void VrMoonlightApp::UpdateScreenGeometry() {
   using_curved_geometry_ = true;
 }
 
-void VrMoonlightApp::UpdateCameraModelMatrix() {
+void VrMoonBoardApp::UpdateCameraModelMatrix() {
   const float pip_width = 0.8f;
   const float pip_height = pip_width / (16.0f / 9.0f);
 
@@ -1290,21 +1290,21 @@ void VrMoonlightApp::UpdateCameraModelMatrix() {
   camera_model_matrix_ = GetTranslationMatrix(translation) * GetScaleMatrix(scale);
 }
 
-void VrMoonlightApp::SetCameraTexture(GLuint texture_id) {
+void VrMoonBoardApp::SetCameraTexture(GLuint texture_id) {
   camera_texture_ = texture_id;
 }
 
-void VrMoonlightApp::SetCameraTextureTransform(const float* transform) {
+void VrMoonBoardApp::SetCameraTextureTransform(const float* transform) {
   if (transform != nullptr) {
     std::copy(transform, transform + 16, camera_texture_transform_);
   }
 }
 
-void VrMoonlightApp::SetCameraEnabled(bool enabled) {
+void VrMoonBoardApp::SetCameraEnabled(bool enabled) {
   camera_enabled_ = enabled;
 }
 
-void VrMoonlightApp::SetPanelDragButtonPressed(bool pressed) {
+void VrMoonBoardApp::SetPanelDragButtonPressed(bool pressed) {
   panel_drag_button_pressed_ = pressed;
   if (!pressed) {
     dragged_panel_ = 0;
@@ -1312,7 +1312,7 @@ void VrMoonlightApp::SetPanelDragButtonPressed(bool pressed) {
   }
 }
 
-bool VrMoonlightApp::RayHitsTitleBar(
+bool VrMoonBoardApp::RayHitsTitleBar(
     const Matrix4x4& panel_matrix, float maximum_y,
     const std::array<float, 3>& ray_origin,
     const std::array<float, 3>& ray_direction) const {
@@ -1338,7 +1338,7 @@ bool VrMoonlightApp::RayHitsTitleBar(
   return x >= -1.f && x <= 1.f && y >= -1.f && y <= maximum_y;
 }
 
-void VrMoonlightApp::UpdatePanelDrag(
+void VrMoonBoardApp::UpdatePanelDrag(
     const std::array<float, 3>& head_position,
     const std::array<float, 4>& head_orientation) {
   if (!panel_drag_button_pressed_) {
@@ -1401,4 +1401,4 @@ void VrMoonlightApp::UpdatePanelDrag(
   }
 }
 
-}  // namespace moonlight_vr
+}  // namespace moonboard_vr

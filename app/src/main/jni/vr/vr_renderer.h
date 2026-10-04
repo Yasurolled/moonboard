@@ -11,15 +11,15 @@
 #include "cardboard.h"
 #include "util.h"
 
-namespace moonlight_vr {
+namespace moonboard_vr {
 
-class VrMoonlightApp {
+class VrMoonBoardApp {
  public:
   static constexpr int kCurvatureModeFlat = 0;
   static constexpr int kCurvatureModeTvCinema = 1;
   static constexpr int kCurvatureModeGamingScreen = 2;
-  VrMoonlightApp(JavaVM* vm, jobject activity, jobject asset_manager);
-  ~VrMoonlightApp();
+  VrMoonBoardApp(JavaVM* vm, jobject activity, jobject asset_manager);
+  ~VrMoonBoardApp();
 
   jint OnSurfaceCreated(JNIEnv* env);
   void OnSurfaceChanged(int width, int height);
@@ -154,6 +154,6 @@ class VrMoonlightApp {
   float last_drag_pitch_ = 0.0f;
 };
 
-}  // namespace moonlight_vr
+}  // namespace moonboard_vr
 
 #endif  // VR_RENDERER_H_

@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 
 public class VrControlService extends Service {
     private static final int NOTIFICATION_ID = 1001;
+    // Keep the established ID so Android retains users' existing channel settings.
     private static final String CHANNEL_ID = "moonlight_vr_control";
     private static final String VR_PREF_KEY = "checkbox_enable_vr";
 
@@ -105,7 +106,7 @@ public class VrControlService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "VR Control", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("MoonlightVR Control Server");
+            channel.setDescription("MoonBoard Control Server");
             NotificationManager mgr = getSystemService(NotificationManager.class);
             if (mgr != null) mgr.createNotificationChannel(channel);
         }
@@ -132,7 +133,7 @@ public class VrControlService extends Service {
         }
         
         return builder
-            .setContentTitle("MoonlightVR")
+            .setContentTitle("MoonBoard")
             .setContentText("HTTPS Control Server Running")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pi)
