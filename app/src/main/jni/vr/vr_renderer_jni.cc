@@ -228,6 +228,12 @@ Java_com_limelight_vr_VrRenderer_nativeSetCameraEnabled(JNIEnv*, jobject,
   FromHandle(handle)->SetCameraEnabled(enabled);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_limelight_vr_VrRenderer_nativeSetPanelDragButtonPressed(
+    JNIEnv*, jobject, jlong handle, jboolean pressed) {
+  FromHandle(handle)->SetPanelDragButtonPressed(pressed == JNI_TRUE);
+}
+
 extern "C" JNIEXPORT jfloat JNICALL
 Java_com_limelight_vr_VrRenderer_nativeGetScreenSize(JNIEnv*, jobject, jlong handle) {
   return FromHandle(handle)->GetScreenSize();

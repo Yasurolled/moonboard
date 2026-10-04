@@ -76,6 +76,7 @@ import android.view.ScaleGestureDetector;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.View.OnGenericMotionListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.View.OnTouchListener;
@@ -158,6 +159,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean lensLockEnabled = false;
     private boolean lensDragActive = false;
     private float lastLensTouchX = 0.0f;
+    private float vrPanelTouchDownX;
+    private float vrPanelTouchDownY;
+    private boolean vrPanelDragButtonDown;
+    private Runnable vrPanelDragLongPress;
     private int activeLensSide = 0;
     private static final int LENS_SIDE_LEFT = 1;
     private static final int LENS_SIDE_RIGHT = 2;
@@ -1177,6 +1182,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (vrMode && vrRenderer != null) {
+            cancelVrPanelDragPress();
+            if (vrPanelDragButtonDown) {
+                vrPanelDragButtonDown = false;
+                vrRenderer.setPanelDragButtonPressed(false);
+            }
             if (vrCameraManager != null) {
                 vrCameraManager.stopCamera();
             }
@@ -2392,13 +2402,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (vrRenderer == null || vrSurfaceView == null) {
             return false;
         }
-        if (lensLockEnabled) {
-            return true;
+
+        if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
+            cancelVrPanelDragPress();
+            if (vrPanelDragButtonDown) {
+                vrPanelDragButtonDown = false;
+                vrRenderer.setPanelDragButtonPressed(false);
+            }
+            lensDragActive = false;
+            activeLensSide = 0;
         }
 
-        if (vrLensScaleDetector != null) {
+        if (!lensLockEnabled && vrLensScaleDetector != null) {
             vrLensScaleDetector.onTouchEvent(event);
             if (vrLensScaleDetector.isInProgress()) {
+                cancelVrPanelDragPress();
                 return true;
             }
         }
@@ -2406,43 +2424,83 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 if (event.getPointerCount() == 1) {
-                    lensDragActive = true;
-                    activeLensSide = determineLensSide(event.getX(0));
-                    lastLensTouchX = event.getX(0);
+                    vrPanelTouchDownX = event.getX(0);
+                    vrPanelTouchDownY = event.getY(0);
+                    cancelVrPanelDragPress();
+                    vrPanelDragLongPress = new Runnable() {
+                        @Override
+                        public void run() {
+                            vrPanelDragButtonDown = true;
+                            lensDragActive = false;
+                            activeLensSide = 0;
+                            vrRenderer.setPanelDragButtonPressed(true);
+                        }
+                    };
+                    vrSurfaceView.postDelayed(vrPanelDragLongPress,
+                            ViewConfiguration.getLongPressTimeout());
                 }
-                break;
+                return true;
             case MotionEvent.ACTION_POINTER_DOWN:
+                cancelVrPanelDragPress();
+                if (vrPanelDragButtonDown) {
+                    vrPanelDragButtonDown = false;
+                    vrRenderer.setPanelDragButtonPressed(false);
+                }
                 lensDragActive = false;
                 activeLensSide = 0;
-                break;
+                return true;
             case MotionEvent.ACTION_MOVE:
-                if (lensDragActive && event.getPointerCount() == 1 && activeLensSide != 0) {
+                if (event.getPointerCount() == 1 && !vrPanelDragButtonDown) {
                     float currentX = event.getX(0);
-                    float dx = currentX - lastLensTouchX;
-                    lastLensTouchX = currentX;
-                    float width = vrSurfaceView.getWidth();
-                    if (width > 0) {
-                        float normalized = (dx / (width * 0.5f)) * LENS_MOVE_SCALE;
-                        if (activeLensSide == LENS_SIDE_LEFT) {
-                            leftLensOffsetX += normalized;
-                            vrRenderer.adjustLeftLensOffset(normalized);
-                        } else if (activeLensSide == LENS_SIDE_RIGHT) {
-                            rightLensOffsetX += normalized;
-                            vrRenderer.adjustRightLensOffset(normalized);
+                    float dxFromDown = currentX - vrPanelTouchDownX;
+                    float dyFromDown = event.getY(0) - vrPanelTouchDownY;
+                    int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+                    if (dxFromDown * dxFromDown + dyFromDown * dyFromDown >
+                            touchSlop * touchSlop) {
+                        cancelVrPanelDragPress();
+                        if (!lensLockEnabled) {
+                            if (!lensDragActive) {
+                                lensDragActive = true;
+                                activeLensSide = determineLensSide(vrPanelTouchDownX);
+                                lastLensTouchX = vrPanelTouchDownX;
+                            }
+                            float dx = currentX - lastLensTouchX;
+                            lastLensTouchX = currentX;
+                            float width = vrSurfaceView.getWidth();
+                            if (width > 0) {
+                                float normalized = (dx / (width * 0.5f)) * LENS_MOVE_SCALE;
+                                if (activeLensSide == LENS_SIDE_LEFT) {
+                                    leftLensOffsetX += normalized;
+                                    vrRenderer.adjustLeftLensOffset(normalized);
+                                } else if (activeLensSide == LENS_SIDE_RIGHT) {
+                                    rightLensOffsetX += normalized;
+                                    vrRenderer.adjustRightLensOffset(normalized);
+                                }
+                            }
                         }
                     }
                 }
-                break;
+                return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
+                cancelVrPanelDragPress();
+                if (vrPanelDragButtonDown) {
+                    vrPanelDragButtonDown = false;
+                    vrRenderer.setPanelDragButtonPressed(false);
+                }
                 finalizeVrLensDrag();
-                break;
+                return true;
             default:
-                break;
+                return true;
         }
+    }
 
-        return true;
+    private void cancelVrPanelDragPress() {
+        if (vrSurfaceView != null && vrPanelDragLongPress != null) {
+            vrSurfaceView.removeCallbacks(vrPanelDragLongPress);
+            vrPanelDragLongPress = null;
+        }
     }
 
     private void finalizeVrLensDrag() {

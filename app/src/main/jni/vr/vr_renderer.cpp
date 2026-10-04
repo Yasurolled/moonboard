@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <iterator>
 #include <string>
 #include <GLES2/gl2.h>
@@ -86,14 +87,111 @@ const char kLineVertexShader[] =
 
 const char kLineFragmentShader[] =
     "precision mediump float;"                "\n"
-    "void main() {"                           "\n"
-    "  gl_FragColor = vec4(0.627, 0.627, 0.627, 1.0);" "\n"
+    "uniform vec4 u_Color;"                    "\n"
+    "void main() {"                            "\n"
+    "  gl_FragColor = u_Color;"                "\n"
     "}";
 
 const GLfloat kLineVertices[] = {
-    0.f, -1.f, 0.f,
-    0.f,  1.f, 0.f,
+    -0.018f, 0.f, 0.f,
+     0.018f, 0.f, 0.f,
+     0.f, -0.028f, 0.f,
+     0.f,  0.028f, 0.f,
 };
+
+bool InvertMatrix(const Matrix4x4& matrix, Matrix4x4* inverse) {
+  float augmented[4][8];
+  for (int row = 0; row < 4; ++row) {
+    for (int col = 0; col < 4; ++col) {
+      augmented[row][col] = matrix.m[row][col];
+      augmented[row][col + 4] = row == col ? 1.0f : 0.0f;
+    }
+  }
+
+  for (int col = 0; col < 4; ++col) {
+    int pivot = col;
+    for (int row = col + 1; row < 4; ++row) {
+      if (std::fabs(augmented[row][col]) >
+          std::fabs(augmented[pivot][col])) {
+        pivot = row;
+      }
+    }
+    if (std::fabs(augmented[pivot][col]) < 1e-6f) {
+      return false;
+    }
+    if (pivot != col) {
+      for (int j = 0; j < 8; ++j) {
+        std::swap(augmented[pivot][j], augmented[col][j]);
+      }
+    }
+
+    const float divisor = augmented[col][col];
+    for (int j = 0; j < 8; ++j) {
+      augmented[col][j] /= divisor;
+    }
+    for (int row = 0; row < 4; ++row) {
+      if (row == col) {
+        continue;
+      }
+      const float factor = augmented[row][col];
+      for (int j = 0; j < 8; ++j) {
+        augmented[row][j] -= factor * augmented[col][j];
+      }
+    }
+  }
+
+  for (int row = 0; row < 4; ++row) {
+    for (int col = 0; col < 4; ++col) {
+      inverse->m[row][col] = augmented[row][col + 4];
+    }
+  }
+  return true;
+}
+
+std::array<std::uint8_t, 7> GetTitleGlyph(char character) {
+  switch (character) {
+    case 'A': return {{14, 17, 17, 31, 17, 17, 17}};
+    case 'C': return {{14, 17, 16, 16, 16, 17, 14}};
+    case 'D': return {{30, 17, 17, 17, 17, 17, 30}};
+    case 'E': return {{31, 16, 16, 30, 16, 16, 31}};
+    case 'M': return {{17, 27, 21, 21, 17, 17, 17}};
+    case 'O': return {{14, 17, 17, 17, 17, 17, 14}};
+    case 'P': return {{30, 17, 17, 30, 16, 16, 16}};
+    case 'R': return {{30, 17, 17, 30, 20, 18, 17}};
+    case 'S': return {{15, 16, 16, 14, 1, 1, 30}};
+    case 'T': return {{31, 4, 4, 4, 4, 4, 4}};
+    default: return {{0, 0, 0, 0, 0, 0, 0}};
+  }
+}
+
+std::vector<GLfloat> BuildTitleLabel(const char* text, float left) {
+  constexpr float kPixelSize = 0.012f;
+  constexpr float kCharacterSpacing = 0.016f;
+  constexpr float kCenterY = -0.91f;
+  constexpr float kFrontZ = 0.025f;
+  std::vector<GLfloat> vertices;
+  float character_x = left;
+  for (const char* character = text; *character != '\0'; ++character) {
+    const std::array<std::uint8_t, 7> glyph = GetTitleGlyph(*character);
+    for (int row = 0; row < 7; ++row) {
+      for (int col = 0; col < 5; ++col) {
+        if ((glyph[row] & (1 << (4 - col))) == 0) {
+          continue;
+        }
+        const float x0 = character_x + col * kPixelSize;
+        const float x1 = x0 + kPixelSize * 0.8f;
+        const float y0 = kCenterY + (row - 3.5f) * kPixelSize;
+        const float y1 = y0 + kPixelSize * 0.8f;
+        vertices.insert(vertices.end(), {
+            x0, y0, kFrontZ, x1, y0, kFrontZ, x0, y1, kFrontZ,
+            x0, y1, kFrontZ, x1, y0, kFrontZ, x1, y1, kFrontZ,
+        });
+      }
+    }
+    character_x += kCharacterSpacing * 5.5f;
+  }
+  return vertices;
+}
 
 const char kSkyboxVertexShader[] =
     "attribute vec4 a_Position;"           "\n"
@@ -159,6 +257,7 @@ VrMoonlightApp::VrMoonlightApp(JavaVM* vm, jobject activity, jobject asset_manag
        mvp_uniform_(-1),
        line_pos_attrib_(-1),
        line_mvp_uniform_(-1),
+       line_color_uniform_(-1),
        skybox_program_(0),
        skybox_pos_attrib_(-1),
        skybox_vp_uniform_(-1),
@@ -289,6 +388,7 @@ jint VrMoonlightApp::OnSurfaceCreated(JNIEnv* env) {
     glDeleteShader(line_fs);
     line_pos_attrib_ = glGetAttribLocation(line_program_, "a_Position");
     line_mvp_uniform_ = glGetUniformLocation(line_program_, "u_MVP");
+    line_color_uniform_ = glGetUniformLocation(line_program_, "u_Color");
   }
 
   if (skybox_program_ == 0) {
@@ -417,6 +517,7 @@ void VrMoonlightApp::OnDrawFrame() {
   }
 
   SetCurrentFramePose(head_orientation);
+  UpdatePanelDrag(head_position, head_orientation);
   RenderVideoToTexture(head_position, head_orientation);
 
   int64_t display_timestamp = GetBootTimeNano() + kDisplayPosePredictionNanos;
@@ -466,9 +567,17 @@ void VrMoonlightApp::OnDrawFrame() {
   auto identity_gl = identity.ToGlArray();
   glUseProgram(line_program_);
   glUniformMatrix4fv(line_mvp_uniform_, 1, GL_FALSE, identity_gl.data());
+  glUniform4f(line_color_uniform_, 1.f, 1.f, 1.f, 0.95f);
   glEnableVertexAttribArray(line_pos_attrib_);
-  glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0, kLineVertices);
-  glDrawArrays(GL_LINES, 0, 2);
+  glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                        kLineVertices);
+  const int eye_width = screen_width_ / kEyeCount;
+  for (int eye_index = 0; eye_index < kEyeCount; ++eye_index) {
+    glViewport(eye_index * eye_width, 0,
+               eye_index == 0 ? eye_width : screen_width_ - eye_width,
+               screen_height_);
+    glDrawArrays(GL_LINES, 0, 4);
+  }
   glDisableVertexAttribArray(line_pos_attrib_);
 }
 
@@ -810,6 +919,81 @@ void VrMoonlightApp::RenderVideoToTexture(
   }
 
   glDisable(GL_DEPTH_TEST);
+  glUseProgram(line_program_);
+  glEnableVertexAttribArray(line_pos_attrib_);
+  glUniform4f(line_color_uniform_, 0.05f, 0.48f, 0.85f, 1.f);
+  const GLfloat desktop_title_bar[] = {
+      -1.f, -1.00f, 0.01f,
+       1.f, -1.00f, 0.01f,
+      -1.f, -0.82f, 0.01f,
+       1.f, -0.82f, 0.01f,
+  };
+  const GLfloat camera_title_bar[] = {
+      -1.f, -1.00f, 0.01f,
+       1.f, -1.00f, 0.01f,
+      -1.f, -0.68f, 0.01f,
+       1.f, -0.68f, 0.01f,
+  };
+  const GLfloat title_grip[] = {
+      -0.08f, -0.90f, 0.02f,
+      -0.04f, -0.90f, 0.02f,
+       0.00f, -0.90f, 0.02f,
+       0.04f, -0.90f, 0.02f,
+       0.08f, -0.90f, 0.02f,
+  };
+  static const std::vector<GLfloat> desktop_title =
+      BuildTitleLabel("DESKTOP", -0.90f);
+  static const std::vector<GLfloat> camera_title =
+      BuildTitleLabel("CAMERA", -0.90f);
+  for (int eye_index = 0; eye_index < kEyeCount; ++eye_index) {
+    float eye_from_head_raw[16];
+    CardboardLensDistortion_getEyeFromHeadMatrix(
+        lens_distortion_, eyes[eye_index], eye_from_head_raw);
+    Matrix4x4 eye_from_head = GetMatrixFromGlArray(eye_from_head_raw);
+    float projection_raw[16];
+    CardboardLensDistortion_getProjectionMatrix(
+        lens_distortion_, eyes[eye_index], kZNear, kZFar, projection_raw);
+    Matrix4x4 projection = GetMatrixFromGlArray(projection_raw);
+    Matrix4x4 view = eye_from_head * head_view;
+
+    glViewport(viewport_x[eye_index], 0, viewport_width[eye_index],
+               screen_height_);
+    std::array<float, 16> mvp_gl =
+        (projection * view * model_matrix_).ToGlArray();
+    glUniformMatrix4fv(line_mvp_uniform_, 1, GL_FALSE, mvp_gl.data());
+    glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                          desktop_title_bar);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glUniform4f(line_color_uniform_, 0.12f, 0.58f, 0.38f, 1.f);
+    glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                          title_grip);
+    glDrawArrays(GL_LINES, 0, 5);
+    glUniform4f(line_color_uniform_, 1.f, 1.f, 1.f, 1.f);
+    glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                          desktop_title.data());
+    glDrawArrays(GL_TRIANGLES, 0,
+                 static_cast<GLsizei>(desktop_title.size() / 3));
+
+    if (camera_enabled_) {
+      glUniform4f(line_color_uniform_, 0.82f, 0.34f, 0.08f, 1.f);
+      std::array<float, 16> camera_mvp_gl =
+          (projection * view * camera_model_matrix_).ToGlArray();
+      glUniformMatrix4fv(line_mvp_uniform_, 1, GL_FALSE,
+                         camera_mvp_gl.data());
+      glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                            camera_title_bar);
+      glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+      glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                            title_grip);
+      glDrawArrays(GL_LINES, 0, 5);
+      glVertexAttribPointer(line_pos_attrib_, 3, GL_FLOAT, GL_FALSE, 0,
+                            camera_title.data());
+      glDrawArrays(GL_TRIANGLES, 0,
+                   static_cast<GLsizei>(camera_title.size() / 3));
+    }
+  }
+  glDisableVertexAttribArray(line_pos_attrib_);
+  glDisable(GL_DEPTH_TEST);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -1100,7 +1284,8 @@ void VrMoonlightApp::UpdateCameraModelMatrix() {
   const float pip_height = pip_width / (16.0f / 9.0f);
 
   const std::array<float, 3> scale = {pip_width * 0.5f, -pip_height * 0.5f, 1.0f};
-  const std::array<float, 3> translation = {0.0f, -0.6f, -1.2f};
+  const std::array<float, 3> translation = {
+      camera_position_x_, -0.6f + camera_position_y_, -1.2f};
 
   camera_model_matrix_ = GetTranslationMatrix(translation) * GetScaleMatrix(scale);
 }
@@ -1117,6 +1302,103 @@ void VrMoonlightApp::SetCameraTextureTransform(const float* transform) {
 
 void VrMoonlightApp::SetCameraEnabled(bool enabled) {
   camera_enabled_ = enabled;
+}
+
+void VrMoonlightApp::SetPanelDragButtonPressed(bool pressed) {
+  panel_drag_button_pressed_ = pressed;
+  if (!pressed) {
+    dragged_panel_ = 0;
+    has_last_drag_angles_ = false;
+  }
+}
+
+bool VrMoonlightApp::RayHitsTitleBar(
+    const Matrix4x4& panel_matrix, float maximum_y,
+    const std::array<float, 3>& ray_origin,
+    const std::array<float, 3>& ray_direction) const {
+  Matrix4x4 inverse;
+  if (!InvertMatrix(panel_matrix, &inverse)) {
+    return false;
+  }
+  const std::array<float, 4> local_origin =
+      inverse * std::array<float, 4>{ray_origin[0], ray_origin[1],
+                                     ray_origin[2], 1.f};
+  const std::array<float, 4> local_direction =
+      inverse * std::array<float, 4>{ray_direction[0], ray_direction[1],
+                                     ray_direction[2], 0.f};
+  if (std::fabs(local_direction[2]) < 1e-5f) {
+    return false;
+  }
+  const float distance = -local_origin[2] / local_direction[2];
+  if (distance <= 0.f) {
+    return false;
+  }
+  const float x = local_origin[0] + local_direction[0] * distance;
+  const float y = local_origin[1] + local_direction[1] * distance;
+  return x >= -1.f && x <= 1.f && y >= -1.f && y <= maximum_y;
+}
+
+void VrMoonlightApp::UpdatePanelDrag(
+    const std::array<float, 3>& head_position,
+    const std::array<float, 4>& head_orientation) {
+  if (!panel_drag_button_pressed_) {
+    dragged_panel_ = 0;
+    has_last_drag_angles_ = false;
+    return;
+  }
+
+  const Matrix4x4 head_rotation =
+      Quatf(head_orientation[0], head_orientation[1],
+            head_orientation[2], head_orientation[3]).ToMatrix();
+  const std::array<float, 4> forward =
+      head_rotation * std::array<float, 4>{0.f, 0.f, -1.f, 0.f};
+  const float yaw = std::atan2(forward[0], -forward[2]);
+  const float pitch = std::asin(std::max(-1.f, std::min(1.f, forward[1])));
+
+  if (dragged_panel_ == 0) {
+    const std::array<float, 3> ray_origin = head_position;
+    const std::array<float, 3> ray_direction = {
+        forward[0], forward[1], forward[2]};
+    if (camera_enabled_ &&
+        RayHitsTitleBar(camera_model_matrix_, -0.68f, ray_origin,
+                        ray_direction)) {
+      dragged_panel_ = 2;
+    } else if (RayHitsTitleBar(model_matrix_, -0.82f, ray_origin,
+                               ray_direction)) {
+      dragged_panel_ = 1;
+    }
+    last_drag_yaw_ = yaw;
+    last_drag_pitch_ = pitch;
+    has_last_drag_angles_ = true;
+    return;
+  }
+
+  if (!has_last_drag_angles_) {
+    last_drag_yaw_ = yaw;
+    last_drag_pitch_ = pitch;
+    has_last_drag_angles_ = true;
+    return;
+  }
+  float delta_yaw = yaw - last_drag_yaw_;
+  while (delta_yaw > 3.14159265f) delta_yaw -= 6.28318531f;
+  while (delta_yaw < -3.14159265f) delta_yaw += 6.28318531f;
+  const float delta_pitch = pitch - last_drag_pitch_;
+  last_drag_yaw_ = yaw;
+  last_drag_pitch_ = pitch;
+
+  if (dragged_panel_ == 1) {
+    screen_yaw_radians_ =
+        std::max(-1.2f, std::min(1.2f, screen_yaw_radians_ + delta_yaw));
+    screen_pitch_radians_ =
+        std::max(-0.8f, std::min(0.8f, screen_pitch_radians_ + delta_pitch));
+    UpdateModelMatrix();
+  } else if (dragged_panel_ == 2) {
+    camera_position_x_ =
+        std::max(-2.f, std::min(2.f, camera_position_x_ + delta_yaw * 0.8f));
+    camera_position_y_ =
+        std::max(-1.5f, std::min(1.5f, camera_position_y_ + delta_pitch * 0.8f));
+    UpdateCameraModelMatrix();
+  }
 }
 
 }  // namespace moonlight_vr

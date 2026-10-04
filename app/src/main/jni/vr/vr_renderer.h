@@ -46,6 +46,7 @@ class VrMoonlightApp {
   void SetCameraTexture(GLuint textureId);
   void SetCameraTextureTransform(const float* transform);
   void SetCameraEnabled(bool enabled);
+  void SetPanelDragButtonPressed(bool pressed);
   float GetCurvatureAmount() const;
   float GetHorizontalCurvature() const;
   float GetVerticalCurvature() const;
@@ -62,6 +63,12 @@ class VrMoonlightApp {
   void DestroyCardboardResources();
   void UpdateModelMatrix();
   void UpdateScreenGeometry();
+  void UpdatePanelDrag(const std::array<float, 3>& head_position,
+                       const std::array<float, 4>& head_orientation);
+  bool RayHitsTitleBar(const Matrix4x4& model_matrix,
+                       float maximum_y,
+                       const std::array<float, 3>& ray_origin,
+                       const std::array<float, 3>& ray_direction) const;
   void TransformLensMesh(std::vector<float>& vertices, float scale,
                          float offset_x, bool is_left_eye);
   void UpdateCameraModelMatrix();
@@ -96,6 +103,7 @@ class VrMoonlightApp {
   GLint mvp_uniform_;
   GLint line_pos_attrib_;
   GLint line_mvp_uniform_;
+  GLint line_color_uniform_;
   GLuint skybox_program_;
   GLint skybox_pos_attrib_;
   GLint skybox_vp_uniform_;
@@ -137,6 +145,13 @@ class VrMoonlightApp {
   bool camera_enabled_ = false;
   float camera_texture_transform_[16];
   Matrix4x4 camera_model_matrix_;
+  float camera_position_x_ = 0.0f;
+  float camera_position_y_ = 0.0f;
+  bool panel_drag_button_pressed_ = false;
+  int dragged_panel_ = 0;
+  bool has_last_drag_angles_ = false;
+  float last_drag_yaw_ = 0.0f;
+  float last_drag_pitch_ = 0.0f;
 };
 
 }  // namespace moonlight_vr

@@ -108,6 +108,15 @@ public class VrRenderer implements Renderer, SurfaceTexture.OnFrameAvailableList
         nativeSetCameraEnabled(nativeHandle, enabled);
     }
 
+    public void setPanelDragButtonPressed(boolean pressed) {
+        glSurfaceView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                nativeSetPanelDragButtonPressed(nativeHandle, pressed);
+            }
+        });
+    }
+
     public void updateCameraTextureTransform(float[] transform) {
         if (transform != null) {
             System.arraycopy(transform, 0, cameraTextureTransform, 0, 16);
@@ -503,6 +512,7 @@ public class VrRenderer implements Renderer, SurfaceTexture.OnFrameAvailableList
     private native void nativeSetCameraTexture(long handle, int textureId);
     private native void nativeSetCameraTextureTransform(long handle, float[] transform);
     private native void nativeSetCameraEnabled(long handle, boolean enabled);
+    private native void nativeSetPanelDragButtonPressed(long handle, boolean pressed);
     private native float nativeGetCurvatureAmount(long handle);
     private native float nativeGetHorizontalCurvature(long handle);
     private native float nativeGetVerticalCurvature(long handle);

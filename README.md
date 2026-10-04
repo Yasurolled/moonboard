@@ -18,6 +18,8 @@ The PiP (Picture-In-Picture) can be enabled in settings for seeing world around 
 
 It also offers remote controller via WebUI. Can be accessed via <mobile-ip>:8555/ from other mobile device for intuitive touch gestures.
 
+VR mode requires Android 8.0 (API 26) or newer. A centered reticle is shown while streaming. Press and hold the phone's touchscreen while aiming the reticle at a panel's colored title bar, then move your head to drag the desktop or camera PiP panel; release to drop it. When lens adjustments are unlocked, single-finger horizontal swipes move the lens and two-finger pinches change its scale.
+
 ## Authors
 
 Original Moonlight-Android app authors:
