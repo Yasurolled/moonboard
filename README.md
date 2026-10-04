@@ -142,6 +142,29 @@ The CI workflow builds the VR debug variant with JDK 21 and the Android SDK.
 Release signing is not configured automatically for local builds. Do not commit
 keystores, passwords, or signing credentials.
 
+### Automated GitHub releases
+
+Push a version tag matching `versionName` in `app/build.gradle` to build a
+release APK and publish it as a GitHub Release:
+
+```sh
+git tag v2026.4.1
+git push origin v2026.4.1
+```
+
+The workflow requires repository **Actions** permission to create releases. For
+signed APKs, configure these repository Actions secrets before tagging:
+
+- `ANDROID_KEYSTORE_BASE64` — Base64-encoded signing keystore.
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+If no signing secrets are configured, the workflow publishes an **unsigned**
+APK; users will not be able to install it as an update over a differently
+signed build. The release workflow can also be run manually for an existing
+matching version tag from the GitHub Actions tab.
+
 ## Project layout
 
 | Path | Purpose |
