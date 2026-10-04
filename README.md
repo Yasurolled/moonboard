@@ -138,9 +138,12 @@ optional x86_64 ABI in addition to arm64-v8a, pass the existing Gradle property:
 ./gradlew :app:assembleVrModeDebug -PincludeX64
 ```
 
-The CI workflow builds the VR debug variant with JDK 21 and the Android SDK.
-Release signing is not configured automatically for local builds. Do not commit
-keystores, passwords, or signing credentials.
+Every push to `main` or `vr` automatically builds the VR debug APK with JDK 21
+and the Android SDK. Download it from the run's **Artifacts** section on the
+GitHub Actions page; artifacts are retained for 30 days. The workflow can also
+be started manually from the Actions tab. Release signing is not configured
+automatically for local builds. Do not commit keystores, passwords, or signing
+credentials.
 
 ### Automated GitHub releases
 
